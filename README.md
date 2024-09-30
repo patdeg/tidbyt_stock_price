@@ -51,7 +51,7 @@ The project uses a `Makefile` to simplify common tasks. The following commands a
   ```bash
   make stock_price.webp
   ```
-  This command renders the `stock_price.star` file into a `.webp` image using Pixlet and passes the required API credentials and stock symbol.
+  This command renders the `stock_price.star` file into a `.webp` image using Pixlet and passes the required stock symbol and API credentials from the file .env.
 
 - **Push the app to your Tidbyt device**:
   ```bash
@@ -86,10 +86,8 @@ The project retrieves stock data using the Alpaca Market API and displays it on 
 
 ```bash
 # Render the stock price for UNH (UnitedHealth Group)
-make stock_price.webp
-
 # Push the rendered stock price app to your Tidbyt device
-make push
+make
 ```
 
 ## Resources
