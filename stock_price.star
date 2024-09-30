@@ -238,7 +238,7 @@ def main(config):
     percent_change_str = "%s" % abs(int(percent_change * 10) / 10)
 
     # Format display_price with no decimal place
-    display_price_str = "%s" % int(display_price)    
+    display_price_str = "%s" % int(display_price)
 
     # Render the app
     return render.Root(
