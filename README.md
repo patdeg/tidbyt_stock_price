@@ -30,9 +30,9 @@ This project displays stock prices on a Tidbyt device using data from the [Alpac
 ## Features
 
 - Displays the latest stock price and percentage change.
-- Shows a graph of historical stock data over a configurable timeframe.
+- Shows a graph of historical stock data over 7 days
 - Color-coded indicators for price movements (green for positive, red for negative).
-- Configurable stock symbol and timeframe.
+- Configurable stock symbol 
 - Caching mechanism to reduce redundant API calls.
 
 ## Prerequisites
@@ -80,10 +80,10 @@ To render the app with default settings:
 make render
 ```
 
-To specify a different stock symbol or timeframe:
+To specify a different stock symbol:
 
 ```bash
-make render SYMBOL=MSFT TIMEFRAME=14
+make render SYMBOL=MSFT
 ```
 
 ### Pushing to Tidbyt
@@ -105,7 +105,7 @@ make serve
 You can specify custom settings:
 
 ```bash
-make serve SYMBOL=GOOGL TIMEFRAME=30
+make serve SYMBOL=GOOGL
 ```
 
 Visit `http://localhost:8080` in your browser to view the app.
@@ -138,10 +138,10 @@ Visit `http://localhost:8080` in your browser to view the app.
 
 ## Customization
 
-You can customize the stock symbol and timeframe by setting the `SYMBOL` and `TIMEFRAME` variables when running `make` commands.
+You can customize the stock symbol by setting the `SYMBOL`  variable when running `make` commands.
 
 ```bash
-make render SYMBOL=TSLA TIMEFRAME=10
+make render SYMBOL=TSLA
 ```
 
 ## Troubleshooting
