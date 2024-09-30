@@ -46,7 +46,7 @@ This project displays stock prices on a Tidbyt device using data from the [Alpac
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/tidbyt-stock-price.git
+git clone https://github.com/patdeg/tidbyt-stock-price.git
 cd tidbyt-stock-price
 ```
 
