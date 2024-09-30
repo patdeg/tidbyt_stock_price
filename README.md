@@ -1,6 +1,6 @@
 # Tidbyt Stock Price Display with Alpaca Market API
 
-This project displays stock prices on a Tidbyt device using data from the [Alpaca Market API](https://alpaca.markets/). It retrieves historical stock data over a configurable number of days and displays the latest trade price, along with percentage changes, graphically on a Tidbyt device.
+This project displays stock prices on a Tidbyt device using data from the [Alpaca Market API](https://alpaca.markets/). It retrieves historical stock data over 7 days and displays the latest trade price, along with percentage changes, graphically on a Tidbyt device.
 
 ## Table of Contents
 
@@ -162,3 +162,4 @@ make render SYMBOL=TSLA
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+

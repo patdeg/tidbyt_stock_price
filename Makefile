@@ -1,3 +1,17 @@
+# Copyright 2024 Patrick Deglon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Makefile for Tidbyt Stock Price Display with Alpaca API integration
 
 include .env
@@ -5,6 +19,9 @@ export $(shell sed 's/=.*//' .env)
 
 # Default values for stock symbol and timeframe
 SYMBOL ?= UNH
+
+# By default render the stock_price.star file and deploy to all devices
+all: stock_price.webp push
 
 # Render the .webp image from the stock_price.star file
 render: stock_price.webp

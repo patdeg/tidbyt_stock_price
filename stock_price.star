@@ -1,9 +1,21 @@
+# Copyright 2024 Patrick Deglon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 This Tidbyt application retrieves and displays the latest stock price and historical stock data
-for a given symbol using the Alpaca Market API. It fetches historical price data for a configurable
-number of days, calculates the relative change, and plots a graph representing the stock's price trend.
-The app also displays the latest trade price, percentage change, and uses color coding to indicate
-price movements.
+for a given symbol using the Alpaca Market API. It fetches historical price data over 7 days and
+displays the latest trade price, along with percentage changes, graphically on a Tidbyt device.
 
 The app uses caching to avoid redundant API calls, ensuring efficient usage of the API service.
 """
@@ -94,7 +106,8 @@ def fetch_latest_price(symbol, alpaca_key, alpaca_secret):
     if trade_info == None:
         print("No trade data found for symbol %s" % symbol)
         return None
-    return float(trade_info.get("p"))
+    latest_price = float(trade_info.get("p"))    
+    return latest_price
 
 def fetch_historical_data(symbol, alpaca_key, alpaca_secret, days):
     """
@@ -115,8 +128,8 @@ def fetch_historical_data(symbol, alpaca_key, alpaca_secret, days):
     if cached_data != None:
         return json.decode(cached_data)
 
-    end_time = time.now()
-    start_time = end_time - time.hour*24*days
+    end_time = time.now() - time.hour*24
+    start_time = end_time - time.hour*24*(1+days)
 
     end_date = end_time.format("2006-01-02T15:04:05Z")
     start_date = start_time.format("2006-01-02T15:04:05Z")
@@ -185,7 +198,7 @@ def main(config):
     max_change = None
     baseline_price = None
 
-    for index, bar in enumerate(bars):
+    for index, bar in enumerate(bars):        
         close_price = float(bar.get('c'))
         if baseline_price == None:
             baseline_price = close_price
@@ -200,16 +213,13 @@ def main(config):
     latest_price = fetch_latest_price(symbol, alpaca_key, alpaca_secret)
     previous_close = float(bars[-1].get('c'))
     if latest_price != None:
-        current_price_change = latest_price - previous_close        
-        if abs(current_price_change) >= 0.02:
-            data_points.append((float(len(bars)), current_price_change))
-            if min_change == None or current_price_change < min_change:
-                min_change = current_price_change
-            if max_change == None or current_price_change > max_change:
-                max_change = current_price_change
-        else:
-            previous_close = float(bars[-2].get('c'))
-        
+        current_price_change = latest_price - baseline_price        
+        data_points.append((float(len(bars)), current_price_change))
+        if min_change == None or current_price_change < min_change:
+            min_change = current_price_change
+        if max_change == None or current_price_change > max_change:
+            max_change = current_price_change
+    
     # Calculate percentage change
     if latest_price != None:        
         price_diff = latest_price - previous_close
@@ -254,9 +264,7 @@ def main(config):
                     width = 64,
                     height = 20,
                     color = "#0f0",  # Green color for positive trend
-                    color_inverted = "#f00",  # Red color for negative trend
-                    #x_lim = (0, x-1),  # Set x-axis limits
-                    #y_lim = (ymin, ymax),  # Set y-axis limits
+                    color_inverted = "#f00",  # Red color for negative trend                    
                     fill = True,  # Fill the plot area
                 ),           
             ],
