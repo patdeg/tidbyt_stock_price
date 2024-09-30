@@ -1,13 +1,14 @@
 """
 This Tidbyt application retrieves and displays the latest stock price and historical stock data
-for a given symbol using the Alpaca API. It fetches historical price data for the last 7 days,
-calculates the relative change, and plots a graph representing the stock's price trend. The app
-also displays the latest trade price and updates it if it deviates from the historical data.
+for a given symbol using the Alpaca Market API. It fetches historical price data for a configurable
+number of days, calculates the relative change, and plots a graph representing the stock's price trend.
+The app also displays the latest trade price, percentage change, and uses color coding to indicate
+price movements.
 
 The app uses caching to avoid redundant API calls, ensuring efficient usage of the API service.
 """
 
-# Load necessary modules for rendering, HTTP requests, caching, JSON handling, time parsing, and schema creation
+# Load necessary modules
 load("render.star", "render")
 load("http.star", "http")
 load("cache.star", "cache")
@@ -15,160 +16,249 @@ load("encoding/json.star", "json")
 load("time.star", "time")
 load("schema.star", "schema")
 
-# Define the schema for configuring the app, including symbol, Alpaca key, and secret
 def get_schema():
+    """
+    Defines the configuration schema for the application, allowing users to set
+    the stock symbol, timeframe for historical data, and their Alpaca API credentials.
+    """
     return schema.Schema(
         version = "1",
         fields = [
             schema.Text(
                 id = "symbol",
-                name = "Symbol",
-                desc = "Stock Ticker",
-                icon = "money-bill",
-            ),     
+                name = "Stock Symbol",
+                desc = "Enter the stock ticker symbol (e.g., AAPL)",
+                icon = "chart-line",                
+            ),            
             schema.Text(
                 id = "alpaca_key",
-                name = "Alpaca Key",
-                desc = "Alpaca Key",
-                icon = "key",
+                name = "Alpaca API Key",
+                desc = "Your Alpaca API Key",
+                icon = "key",                
             ),
             schema.Text(
                 id = "alpaca_secret",
-                name = "Alpaca Secret",
-                desc = "Alpaca Secret",
-                icon = "key",
+                name = "Alpaca API Secret",
+                desc = "Your Alpaca API Secret",
+                icon = "key",                
             ),
         ],
     )
 
-# Fetch the latest trade price for a given stock symbol using Alpaca API
-def get_price(symbol, alpaca_key, alpaca_secret):
-    url = "https://data.alpaca.markets/v2/stocks/trades/latest?symbols=%s&feed=iex" % (symbol)
-    res = http.get(url, headers = {
-          'APCA-API-KEY-ID': alpaca_key,
-          'APCA-API-SECRET-KEY': alpaca_secret,
-          'accept': 'application/json',
-        })
-    
-    # Check if the request was successful, otherwise fail with an error message
-    if res.status_code != 200:
-        fail("GET %s failed with status %d: %s", url, res.status_code, res.body())
+def fetch_with_retry(url, headers, retries=3):
+    """
+    Fetches data from the given URL with a retry mechanism.
+
+    Args:
+        url (str): The API endpoint URL.
+        headers (dict): Headers to include in the HTTP request.
+        retries (int): Number of retry attempts.
+
+    Returns:
+        http.Response or None: The HTTP response object, or None if all attempts fail.
+    """
+    for attempt in range(retries):
+        res = http.get(url, headers=headers)
+        if res.status_code == 200:
+            return res
+        else:
+            print("Attempt %d: Failed to fetch data from %s (Status code: %d)" % (attempt + 1, url, res.status_code))
+    print("Failed to fetch data from %s after %d attempts" % (url, retries))
+    return None
+
+def fetch_latest_price(symbol, alpaca_key, alpaca_secret):
+    """
+    Fetches the latest trade price for the given stock symbol using the Alpaca Market API.
+
+    Args:
+        symbol (str): The stock ticker symbol.
+        alpaca_key (str): Alpaca API key.
+        alpaca_secret (str): Alpaca API secret.
+
+    Returns:
+        float or None: The latest trade price, or None if an error occurs.
+    """
+    url = "https://data.alpaca.markets/v2/stocks/trades/latest?symbols=%s&feed=iex" % symbol
+    headers = {
+        'APCA-API-KEY-ID': alpaca_key,
+        'APCA-API-SECRET-KEY': alpaca_secret,
+        'accept': 'application/json',
+    }
+
+    res = fetch_with_retry(url, headers)
+    if res == None:
+        print("Error fetching latest price: No response")
         return None
+    data = res.json()
+    trade_info = data.get("trades", {}).get(symbol)
+    if trade_info == None:
+        print("No trade data found for symbol %s" % symbol)
+        return None
+    return float(trade_info.get("p"))
 
-    # Return the latest trade price for the requested symbol
-    return res.json().get("trades").get(symbol).get("p")
+def fetch_historical_data(symbol, alpaca_key, alpaca_secret, days):
+    """
+    Fetches historical stock data for the given symbol and timeframe.
 
-# Fetch historical stock data (last 7 days) from Alpaca API
-def get_data(symbol, alpaca_key, alpaca_secret):
-    data = cache.get("data")  # Check if the data is already cached
+    Args:
+        symbol (str): The stock ticker symbol.
+        alpaca_key (str): Alpaca API key.
+        alpaca_secret (str): Alpaca API secret.
+        days (int): Number of days of historical data to fetch.
 
-    if data == None:  # If data is not cached, fetch it from the API
-        # Calculate the current date and 7 days ago in RFC-3339 format
-        end_date = time.now().format("2006-01-02T15:04:05Z")
-        start_date = (time.now() - time.hour * 24 * 7).format("2006-01-02T15:04:05Z")
-        
-        # URL for fetching historical bars (1-day intervals) for the given symbol
-        url = "https://data.alpaca.markets/v2/stocks/%s/bars?timeframe=1Day&start=%s&end=%s&limit=100" % (symbol, start_date, end_date)
-        res = http.get(url, headers = {
-            'APCA-API-KEY-ID': alpaca_key,
-            'APCA-API-SECRET-KEY': alpaca_secret,
-            'accept': 'application/json',
-        })
-        
-        # Check if the request was successful, otherwise fail with an error message
-        if res.status_code != 200:
-            fail("GET %s failed with status %d: %s", url, res.status_code, res.body())
-            return None
-        
-        resJson = res.json()
+    Returns:
+        list or None: A list of bar data sorted by date, or None if an error occurs.
+    """
+    cache_key = "data_%s_%d" % (symbol, days)
+    cached_data = cache.get(cache_key)
 
-        # If no bars data is found, log and fail the process
-        if resJson.get("bars") == None or len(resJson.get("bars")) == 0:
-            print("No bars found in the response:", resJson)
-            fail("No data")
-        
-        # Sort the bars by date in ascending order (oldest to most recent)
-        sorted_bars = sorted(resJson.get("bars"), key=lambda x: time.parse_time(x.get("t"), "2006-01-02T15:04:05Z"))
+    if cached_data != None:
+        return json.decode(cached_data)
 
-        # Cache the sorted bars data for 1 hour to avoid redundant API calls
-        cache.set("data", json.encode(sorted_bars), ttl_seconds=3600)
+    end_time = time.now()
+    start_time = end_time - time.hour*24*days
 
-    else:  # Use the cached data if available
-        sorted_bars = json.decode(data)
-        
+    end_date = end_time.format("2006-01-02T15:04:05Z")
+    start_date = start_time.format("2006-01-02T15:04:05Z")
+
+    url = "https://data.alpaca.markets/v2/stocks/%s/bars?timeframe=1Day&start=%s&end=%s&limit=100" % (symbol, start_date, end_date)
+    headers = {
+        'APCA-API-KEY-ID': alpaca_key,
+        'APCA-API-SECRET-KEY': alpaca_secret,
+        'accept': 'application/json',
+    }
+
+    res = fetch_with_retry(url, headers)
+    if res == None:
+        print("Error fetching historical data: No response")
+        return None
+    data = res.json()
+    bars = data.get("bars")
+    if not bars:
+        print("No historical data found for symbol %s" % symbol)
+        return None
+    sorted_bars = sorted(bars, key=lambda x: time.parse_time(x.get("t"), "2006-01-02T15:04:05Z"))
+    # Cache the data, adjust TTL based on market hours
+    now_hour = time.now().hour
+    # Assume market hours are 9 AM to 4 PM Eastern Time
+    if (9 <= now_hour) and (now_hour <= 16):
+        ttl_seconds = 300  # 5 minutes during market hours
+    else:
+        ttl_seconds = 3600  # 1 hour outside market hours
+    cache.set(cache_key, json.encode(sorted_bars), ttl_seconds=ttl_seconds)
     return sorted_bars
 
-# Main function to render the app and plot the stock price changes
 def main(config):
-    # Get Ticker symbol from the configuration or default to "UNH"
-    symbol = config.get("symbol", "UNH")
+    """
+    Main function to render the stock price application.
 
-    # Alpaca API Key and Secret from the configuration
+    Args:
+        config (dict): Configuration parameters provided by the user.
+
+    Returns:
+        render.Root: The root render object for the Tidbyt app.
+    """
+    # Get configuration parameters
+    symbol = config.get("symbol", "AAPL")    
     alpaca_key = config.get("alpaca_key")
     alpaca_secret = config.get("alpaca_secret")
 
-    # Fetch the historical data using Alpaca API
-    bars = get_data(symbol, alpaca_key, alpaca_secret)
+    # Set timeframe    
+    timeframe_days = 7
 
-    # Prepare lists for plotting stock price data
-    data = []        
-    x = 0
-    ymin = 999
-    ymax = -999
-    x0 = -999
-    
-    # Loop through each bar to collect the closing price and calculate the change
-    for bar in bars: 
-        close = float(bar.get('c'))  # Get the closing price
-        if x0 == -999:
-            x0 = close  # Set the baseline price
-        value = close - x0  # Calculate the relative price change
-        data.append((float(x), value))  # Append data for plotting
-        if value < ymin:
-            ymin = value  # Track the minimum value for y-axis
-        if value > ymax:
-            ymax = value  # Track the maximum value for y-axis
-        x += 1
+    # Ensure API keys are provided
+    if alpaca_key == None or alpaca_secret == None:
+        return render.Root(
+            child=render.Text("Missing Alpaca API keys"),
+        )
 
-    # Fetch the current price from the Alpaca API
-    current_price = get_price(symbol, alpaca_key, alpaca_secret)
-    
-    # If there's a significant difference between the last recorded price and the current price
-    if abs(close - current_price) > 0.05:
-        value = current_price - x0  # Calculate the relative change with the current price
-        if value < ymin:
-            ymin = value
-        if value > ymax:
-            ymax = value        
-        data.append((float(x), value))  # Append the current price to the data
-        x += 1
+    # Fetch historical data
+    bars = fetch_historical_data(symbol, alpaca_key, alpaca_secret, timeframe_days)
+    if bars == None:
+        return render.Root(
+            child=render.Text("No data available for %s" % symbol),
+        )
 
-    # Render the data as a plot on Tidbyt
+    # Prepare data for plotting
+    data_points = []
+    min_change = None
+    max_change = None
+    baseline_price = None
+
+    for index, bar in enumerate(bars):
+        close_price = float(bar.get('c'))
+        if baseline_price == None:
+            baseline_price = close_price
+        price_change = close_price - baseline_price
+        data_points.append((float(index), price_change))
+        if min_change == None or price_change < min_change:
+            min_change = price_change
+        if max_change == None or price_change > max_change:
+            max_change = price_change
+
+    # Fetch latest price
+    latest_price = fetch_latest_price(symbol, alpaca_key, alpaca_secret)
+    previous_close = float(bars[-1].get('c'))
+    if latest_price != None:
+        current_price_change = latest_price - previous_close        
+        if abs(current_price_change) >= 0.02:
+            data_points.append((float(len(bars)), current_price_change))
+            if min_change == None or current_price_change < min_change:
+                min_change = current_price_change
+            if max_change == None or current_price_change > max_change:
+                max_change = current_price_change
+        else:
+            previous_close = float(bars[-2].get('c'))
+        
+    # Calculate percentage change
+    if latest_price != None:        
+        price_diff = latest_price - previous_close
+        percent_change = (price_diff / previous_close) * 100
+        change_sign = "+" if percent_change >= 0 else "-"
+        change_color = "#00FF00" if percent_change >= 0 else "#FF0000"
+        display_price = latest_price
+    else:
+        price_diff = previous_close - baseline_price
+        percent_change = (price_diff / baseline_price) * 100
+        change_sign = ""
+        change_color = "#FFFFFF"
+        display_price = previous_close
+
+    # Format percentage change with one decimal place
+    percent_change_str = "%s" % abs(int(percent_change * 10) / 10)
+
+    # Format display_price with no decimal place
+    display_price_str = "%s" % int(display_price)    
+
+    # Render the app
     return render.Root(
-        child = render.Column(
+        render.Column(
+            expanded=True,
+            main_align="space_around",
+            cross_align="center",
             children=[
                 render.Row(
-                    children = [                         
-                        render.Text(symbol + " " + str(current_price)),  # Display the symbol and current price
-                    ],
-                ),
-                render.Row(
-                    expanded=True,  # Expand to use full horizontal space
-                    main_align="space_evenly",  # Distribute space evenly between elements
-                    cross_align="center",  # Center vertically
-                    children = [
-                        render.Plot(
-                            data = data,  # Plot the stock price change data
-                            width = 64,
-                            height = 24,
-                            color = "#0f0",  # Green color for positive trend
-                            color_inverted = "#f00",  # Red color for negative trend
-                            x_lim = (0, x-1),  # Set x-axis limits
-                            y_lim = (ymin, ymax),  # Set y-axis limits
-                            fill = True,  # Fill the plot area
+                    children=[
+                        render.Text("%s %s " % (symbol.upper(), display_price_str),
+                            #color=change_color,
+                            font="CG-pixel-4x5-mono",
+                        ),                        
+                        render.Text("%s%s%%" % (change_sign, percent_change_str),
+                            color=change_color,
+                            font="CG-pixel-3x5-mono",
                         ),
                     ],
-                ),
+                ),     
+                render.Plot(
+                    data = data_points,  # Plot the stock price change data
+                    width = 64,
+                    height = 20,
+                    color = "#0f0",  # Green color for positive trend
+                    color_inverted = "#f00",  # Red color for negative trend
+                    #x_lim = (0, x-1),  # Set x-axis limits
+                    #y_lim = (ymin, ymax),  # Set y-axis limits
+                    fill = True,  # Fill the plot area
+                ),           
             ],
         ),
     )

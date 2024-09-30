@@ -2,8 +2,8 @@ include .env
 export $(shell sed 's/=.*//' .env)
 
 all:	stock_price.webp push
-    	
-stock_price.webp:	stock_price.star
+
+stock_price.webp:	stock_price.star	
 	pixlet render stock_price.star symbol=UNH alpaca_key=$(ALPACA_KEY) alpaca_secret=$(ALPACA_SECRET)
 
 list:
@@ -16,4 +16,16 @@ push:
 	done
 
 serve:
-	pixlet serve stock_price.star 
+	pixlet serve stock_price.star
+
+showcode:
+	@{ \
+		for f in `git ls-files` ; do \
+			echo "// $$f"; \
+			cat "$$f"; \
+			echo; \
+			echo "----------------------------------------------"; \
+			echo; \
+		done; \
+	} | xclip -selection clipboard
+	@echo "All code copied to clipboard"

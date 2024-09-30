@@ -1,40 +1,66 @@
+
 # Tidbyt Stock Price Display with Alpaca Market API
 
-This project displays stock prices on a Tidbyt device using data from the [Alpaca Market API](https://alpaca.markets/). The project retrieves historical stock data (over the last 7 days) and the latest trade price, displaying them graphically on a Tidbyt device.
+This project displays stock prices on a Tidbyt device using data from the [Alpaca Market API](https://alpaca.markets/). It retrieves historical stock data over a configurable number of days and displays the latest trade price, along with percentage changes, graphically on a Tidbyt device.
 
-## Introduction to Tidbyt and Pixlet
+## Table of Contents
 
-[Tidbyt](https://tidbyt.com/) is a smart display that allows you to run custom apps, showing information ranging from weather updates to stock prices. Apps for Tidbyt are created using [Pixlet](https://github.com/tidbyt/pixlet), a command-line tool that renders apps and allows you to push them to your Tidbyt device.
+- [Introduction](#introduction)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Setup and Configuration](#setup-and-configuration)
+  - [Clone the Repository](#clone-the-repository)
+  - [Install Pixlet](#install-pixlet)
+  - [Alpaca API Keys](#alpaca-api-keys)
+  - [Environment Variables](#environment-variables)
+- [Usage](#usage)
+  - [Rendering the App](#rendering-the-app)
+  - [Pushing to Tidbyt](#pushing-to-tidbyt)
+  - [Serving Locally](#serving-locally)
+- [Makefile Commands](#makefile-commands)
+- [Customization](#customization)
+- [Troubleshooting](#troubleshooting)
+- [Dependencies](#dependencies)
+- [Acknowledgments](#acknowledgments)
+- [License](#license)
 
-### Pixlet Command Line Usage
+## Introduction
 
-- **Render**: The `pixlet render` command takes your `.star` file and renders it to a `.webp` image.
-- **Push**: The `pixlet push` command sends your rendered app to a Tidbyt device.
-- **Serve**: The `pixlet serve` command runs your `.star` app locally, which is useful for development and previewing your app before pushing it to the device.
+[Tidbyt](https://tidbyt.com/) is a smart display that allows you to run custom apps, showing information ranging from weather updates to stock prices. This project uses [Pixlet](https://github.com/tidbyt/pixlet), a command-line tool for developing Tidbyt apps, to display stock price information retrieved from the Alpaca Market API.
 
-This project makes use of Pixlet to generate and push a stock price display app using stock data retrieved from the Alpaca Market API.
+## Features
 
-## Alpaca Market API
+- Displays the latest stock price and percentage change.
+- Shows a graph of historical stock data over a configurable timeframe.
+- Color-coded indicators for price movements (green for positive, red for negative).
+- Configurable stock symbol and timeframe.
+- Caching mechanism to reduce redundant API calls.
 
-[Alpaca](https://alpaca.markets/) offers market data and trading APIs for stocks and cryptocurrencies. This project uses two key endpoints from the Alpaca API:
+## Prerequisites
 
-1. **[Stock Bars](https://docs.alpaca.markets/reference/stockbars)**:
-   - This endpoint provides historical stock data aggregated into bars (open, high, low, close prices) over various timeframes.
-   - In this project, we retrieve daily bars for the past 7 days to display recent stock price trends.
-
-2. **[Stock Latest Trades](https://docs.alpaca.markets/reference/stocklatesttrades-1)**:
-   - This endpoint provides the latest trade data for a given stock symbol.
-   - The project retrieves the most recent trade price to display along with the historical data.
+- A Tidbyt device.
+- [Pixlet CLI](https://github.com/tidbyt/pixlet) installed (version 0.14.0 or later recommended).
+- An Alpaca API account (sign up [here](https://alpaca.markets/)) and API keys (`ALPACA_KEY` and `ALPACA_SECRET`).
 
 ## Setup and Configuration
 
-### Prerequisites
+### Clone the Repository
 
-- A Tidbyt device
-- [Pixlet CLI](https://github.com/tidbyt/pixlet) installed
-- An Alpaca API account (sign up [here](https://alpaca.markets/)) and API keys (both `ALPACA_KEY` and `ALPACA_SECRET`)
+```bash
+git clone https://github.com/yourusername/tidbyt-stock-price.git
+cd tidbyt-stock-price
+```
 
-### `.env` File
+### Install Pixlet
+
+Follow the installation instructions for Pixlet [here](https://github.com/tidbyt/pixlet#installation).
+
+### Alpaca API Keys
+
+1. Sign up for an account at [Alpaca Markets](https://alpaca.markets/).
+2. Generate your API keys (`ALPACA_KEY` and `ALPACA_SECRET`).
+
+### Environment Variables
 
 Create a `.env` file in the root directory to store your Alpaca API credentials:
 
@@ -43,57 +69,97 @@ ALPACA_KEY=your-alpaca-api-key
 ALPACA_SECRET=your-alpaca-api-secret
 ```
 
-### Running the Application
+**Important**: Ensure your `.env` file is included in `.gitignore` to prevent accidental commits of sensitive information.
 
-The project uses a `Makefile` to simplify common tasks. The following commands are available:
+## Usage
 
-- **Render the app**:
-  ```bash
-  make stock_price.webp
-  ```
-  This command renders the `stock_price.star` file into a `.webp` image using Pixlet and passes the required API credentials and stock symbol.
+### Rendering the App
 
-- **Push the app to your Tidbyt device**:
-  ```bash
-  make push
-  ```
-  This command pushes the rendered `.webp` image to your Tidbyt device.
-
-- **List available Tidbyt devices**:
-  ```bash
-  make list
-  ```
-  This command lists your registered Tidbyt devices.
-
-- **Serve the app locally**:
-  ```bash
-  make serve
-  ```
-  This command serves the app locally, allowing you to preview it before pushing it to a device.
-
-## How It Works
-
-The project retrieves stock data using the Alpaca Market API and displays it on a Tidbyt device:
-
-1. **Stock Data**:
-   - Historical daily stock bars for the last 7 days are retrieved and plotted on a graph to show the recent stock price trend.
-   - The most recent trade price is retrieved and displayed alongside the stock ticker symbol.
-
-2. **Pixlet Rendering**:
-   - Pixlet renders this data into a `.webp` image, which is then pushed to your Tidbyt device.
-
-## Example
+To render the app with default settings:
 
 ```bash
-# Render the stock price for UNH (UnitedHealth Group)
-make stock_price.webp
+make render
+```
 
-# Push the rendered stock price app to your Tidbyt device
+To specify a different stock symbol or timeframe:
+
+```bash
+make render SYMBOL=MSFT TIMEFRAME=14
+```
+
+### Pushing to Tidbyt
+
+```bash
 make push
 ```
 
-## Resources
+This command will push the rendered app to all registered Tidbyt devices.
 
-- [Pixlet CLI Documentation](https://github.com/tidbyt/pixlet)
-- [Alpaca Market API - Stock Bars](https://docs.alpaca.markets/reference/stockbars)
-- [Alpaca Market API - Stock Latest Trades](https://docs.alpaca.markets/reference/stocklatesttrades-1)
+### Serving Locally
+
+To serve the app locally for development and preview:
+
+```bash
+make serve
+```
+
+You can specify custom settings:
+
+```bash
+make serve SYMBOL=GOOGL TIMEFRAME=30
+```
+
+Visit `http://localhost:8080` in your browser to view the app.
+
+## Makefile Commands
+
+- **Render the App**:
+
+  ```bash
+  make render
+  ```
+
+- **Push to Tidbyt**:
+
+  ```bash
+  make push
+  ```
+
+- **Serve Locally**:
+
+  ```bash
+  make serve
+  ```
+
+- **List Devices**:
+
+  ```bash
+  make list
+  ```
+
+## Customization
+
+You can customize the stock symbol and timeframe by setting the `SYMBOL` and `TIMEFRAME` variables when running `make` commands.
+
+```bash
+make render SYMBOL=TSLA TIMEFRAME=10
+```
+
+## Troubleshooting
+
+- **Missing Alpaca API Keys**: Ensure `ALPACA_KEY` and `ALPACA_SECRET` are set in your `.env` file.
+- **No Data Available**: Check if the stock symbol is correct and if the Alpaca API is operational.
+- **Display Issues**: Make sure your Tidbyt device is connected to the internet and functioning properly.
+
+## Dependencies
+
+- **Pixlet**: Tested with version 0.14.0
+- **Python**: Required for running the `Makefile` commands (if any scripts are used)
+
+## Acknowledgments
+
+- **Alpaca Market API**: Stock data provided by [Alpaca Market API](https://alpaca.markets/). Ensure you comply with their [terms of service](https://alpaca.markets/terms-of-service/).
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
