@@ -1,4 +1,3 @@
-
 # Tidbyt Stock Price Display with Alpaca Market API
 
 This project displays stock prices on a Tidbyt device using data from the [Alpaca Market API](https://alpaca.markets/). It retrieves historical stock data over a configurable number of days and displays the latest trade price, along with percentage changes, graphically on a Tidbyt device.
@@ -118,7 +117,8 @@ Visit `http://localhost:8080` in your browser to view the app.
   ```bash
   make render
   ```
-  This command renders the `stock_price.star` file into a `.webp` image using Pixlet and passes the required API credentials and stock symbol.
+
+- **Push to Tidbyt**:
 
   ```bash
   make push
@@ -141,15 +141,24 @@ Visit `http://localhost:8080` in your browser to view the app.
 You can customize the stock symbol and timeframe by setting the `SYMBOL` and `TIMEFRAME` variables when running `make` commands.
 
 ```bash
-# Render the stock price for UNH (UnitedHealth Group)
-make stock_price.webp
-
-# Push the rendered stock price app to your Tidbyt device
-make push
+make render SYMBOL=TSLA TIMEFRAME=10
 ```
 
-## Resources
+## Troubleshooting
 
-- [Pixlet CLI Documentation](https://github.com/tidbyt/pixlet)
-- [Alpaca Market API - Stock Bars](https://docs.alpaca.markets/reference/stockbars)
-- [Alpaca Market API - Stock Latest Trades](https://docs.alpaca.markets/reference/stocklatesttrades-1)
+- **Missing Alpaca API Keys**: Ensure `ALPACA_KEY` and `ALPACA_SECRET` are set in your `.env` file.
+- **No Data Available**: Check if the stock symbol is correct and if the Alpaca API is operational.
+- **Display Issues**: Make sure your Tidbyt device is connected to the internet and functioning properly.
+
+## Dependencies
+
+- **Pixlet**: Tested with version 0.14.0
+- **Python**: Required for running the `Makefile` commands (if any scripts are used)
+
+## Acknowledgments
+
+- **Alpaca Market API**: Stock data provided by [Alpaca Market API](https://alpaca.markets/). Ensure you comply with their [terms of service](https://alpaca.markets/terms-of-service/).
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
