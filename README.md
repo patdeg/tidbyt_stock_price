@@ -10,7 +10,7 @@ This project displays stock prices on a Tidbyt device using data from the [Alpac
   - [Clone the Repository](#clone-the-repository)
   - [Install Pixlet](#install-pixlet)
   - [Alpaca API Keys](#alpaca-api-keys)
-  - [Environment Variables](#environment-variables)
+  - [ Variables](#environment-variables)
   - [Set Up a Personal Server and Cron Job](#set-up-a-personal-server-and-cron-job)
 - [Usage](#usage)
   - [Rendering the App](#rendering-the-app)
@@ -72,7 +72,7 @@ To ensure the stock price is updated on your Tidbyt every 5 minutes, you'll need
    On your server, set up a cron job to refresh (push) the image every 5 minutes. You can do this by adding the following line to your crontab:
 
    ```bash
-   */5 * * * * cd ~/tidbyt_stock_price && make push > /dev/null 2>> ~/tidbyt_stock_price/cron_error.log
+   */5 * * * * cd ~/tidbyt_stock_price/refresh.sh > /dev/null 2>> ~/tidbyt_stock_price/cron_error.log
    ```
 
    This cron job will:
