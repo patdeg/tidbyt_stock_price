@@ -77,7 +77,7 @@ To ensure the stock price is updated on your Tidbyt every 5 minutes, you'll need
 
    This cron job will:
    - Navigate to the project directory.
-   - Run `make push` to update the Tidbyt device.
+   - Run `refresh.sh` to render the image and update the Tidbyt device.
    - Discard standard output and log only errors in `cron_error.log`.
 
 2. **Verify the Cron Job**  
