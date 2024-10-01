@@ -234,6 +234,8 @@ def main(config):
         change_color = "#FFFFFF"
         display_price = previous_close
 
+    print("UNH:",latest_price)
+
     # Format percentage change with one decimal place
     percent_change_str = "%s" % abs(int(percent_change * 10) / 10)
 

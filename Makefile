@@ -28,11 +28,11 @@ render: stock_price.webp
 
 # Render the stock_price.star app to .webp image using Pixlet
 stock_price.webp: stock_price.star
-	pixlet render stock_price.star symbol=$(SYMBOL) alpaca_key=$(ALPACA_KEY) alpaca_secret=$(ALPACA_SECRET)
+	@pixlet render stock_price.star symbol=$(SYMBOL) alpaca_key=$(ALPACA_KEY) alpaca_secret=$(ALPACA_SECRET)
 
 # List all Tidbyt devices linked to your account
 list:
-	pixlet devices
+	@pixlet devices
 
 # Push the rendered app to all registered Tidbyt devices
 push: stock_price.webp
@@ -43,7 +43,7 @@ push: stock_price.webp
 
 # Serve the Tidbyt app locally for development and preview
 serve:
-	pixlet serve stock_price.star symbol=$(SYMBOL) alpaca_key=$(ALPACA_KEY) alpaca_secret=$(ALPACA_SECRET)
+	@pixlet serve stock_price.star symbol=$(SYMBOL) alpaca_key=$(ALPACA_KEY) alpaca_secret=$(ALPACA_SECRET)
 
 # Show code of all files in the project
 showcode:
@@ -60,4 +60,4 @@ showcode:
 
 # Clean up any generated files
 clean:
-	rm -f stock_price.webp
+	@rm -f stock_price.webp
