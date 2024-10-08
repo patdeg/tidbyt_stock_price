@@ -20,6 +20,7 @@ displays the latest trade price, along with percentage changes, graphically on a
 The app uses caching to avoid redundant API calls, ensuring efficient usage of the API service.
 """
 
+
 # Load necessary modules
 load("render.star", "render")
 load("http.star", "http")
