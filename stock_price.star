@@ -186,12 +186,10 @@ def main(config):
             child=render.Text("Missing Alpaca API keys"),
         )
 
-    # Fetch historical data
+    # Fetch historical data    
     bars = fetch_historical_data(symbol, alpaca_key, alpaca_secret, timeframe_days)
     if bars == None:
-        return render.Root(
-            child=render.Text("No data available for %s" % symbol),
-        )
+        raise Exception("No data available for %s" % symbol)
 
     # Prepare data for plotting
     data_points = []

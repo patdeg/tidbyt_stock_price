@@ -21,7 +21,7 @@ export $(shell sed 's/=.*//' .env)
 SYMBOL ?= UNH
 
 # By default render the stock_price.star file and deploy to all devices
-all: stock_price.webp push
+default: push
 
 # Render the .webp image from the stock_price.star file
 render: stock_price.webp
