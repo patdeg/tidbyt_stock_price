@@ -28,7 +28,7 @@ render: stock_price.webp
 
 # Render the stock_price.star app to .webp image using Pixlet
 stock_price.webp: stock_price.star
-	@pixlet render stock_price.star symbol=$(SYMBOL) alpaca_key=$(ALPACA_KEY) alpaca_secret=$(ALPACA_SECRET)
+	pixlet render stock_price.star symbol=$(SYMBOL) alpaca_key=$(ALPACA_KEY) alpaca_secret=$(ALPACA_SECRET)
 
 # List all Tidbyt devices linked to your account
 list:

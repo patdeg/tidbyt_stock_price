@@ -20,7 +20,6 @@ displays the latest trade price, along with percentage changes, graphically on a
 The app uses caching to avoid redundant API calls, ensuring efficient usage of the API service.
 """
 
-
 # Load necessary modules
 load("render.star", "render")
 load("http.star", "http")
@@ -186,10 +185,12 @@ def main(config):
             child=render.Text("Missing Alpaca API keys"),
         )
 
-    # Fetch historical data    
+    # Fetch historical data
     bars = fetch_historical_data(symbol, alpaca_key, alpaca_secret, timeframe_days)
     if bars == None:
-        raise Exception("No data available for %s" % symbol)
+        return render.Root(
+            child=render.Text("No data available for %s" % symbol),
+        )
 
     # Prepare data for plotting
     data_points = []
@@ -271,3 +272,4 @@ def main(config):
             ],
         ),
     )
+
