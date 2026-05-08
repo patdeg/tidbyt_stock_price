@@ -18,7 +18,7 @@ include .env
 export $(shell sed 's/=.*//' .env)
 
 # Default values for stock symbol and timeframe
-SYMBOL ?= UNH
+SYMBOL ?= GEHC
 
 # By default render the stock_price.star file and deploy to all devices
 default: push
@@ -36,10 +36,10 @@ list:
 
 # Push the rendered app to all registered Tidbyt devices
 push: stock_price.webp
-	@for target in $$(pixlet devices | awk '{print $$1}'); do \
-		echo pushing to "$$target"; \
-		pixlet push --installation-id $(SYMBOL) $$target stock_price.webp; \
-	done
+	@echo "pushing to DECK ($(TIDBYT_DEVICE_ID_DECK))"
+	@pixlet push --api-token $(TIDBYT_API_TOKEN_DESK) --installation-id $(SYMBOL) $(TIDBYT_DEVICE_ID_DECK) stock_price.webp
+	@echo "pushing to SHELF ($(TIDBYT_DEVICE_ID_SHELF))"
+	@pixlet push --api-token $(TIDBYT_API_TOKEN_SHELF) --installation-id $(SYMBOL) $(TIDBYT_DEVICE_ID_SHELF) stock_price.webp
 
 # Serve the Tidbyt app locally for development and preview
 serve:

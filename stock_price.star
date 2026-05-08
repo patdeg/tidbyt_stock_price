@@ -106,7 +106,11 @@ def fetch_latest_price(symbol, alpaca_key, alpaca_secret):
     if trade_info == None:
         print("No trade data found for symbol %s" % symbol)
         return None
-    latest_price = float(trade_info.get("p"))    
+    price = trade_info.get("p")
+    if price == None:
+        print("No price field in trade data for symbol %s" % symbol)
+        return None
+    latest_price = float(price)
     return latest_price
 
 def fetch_historical_data(symbol, alpaca_key, alpaca_secret, days):
@@ -237,7 +241,8 @@ def main(config):
     print(symbol,":",latest_price)
 
     # Format percentage change with one decimal place
-    percent_change_str = "%s" % abs(int(percent_change * 10) / 10)
+    abs_pct_x10 = int(abs(percent_change) * 10 + 0.5)
+    percent_change_str = "%d.%d" % (abs_pct_x10 // 10, abs_pct_x10 % 10)
 
     # Format display_price with no decimal place
     display_price_str = "%s" % int(display_price)
