@@ -14,7 +14,6 @@ fi
 echo "[tidbyt_stock_price] $(date '+%Y/%m/%d %H:%M:%S') Starting"
 echo "--------------------------------------------------"
 
-make clean
 ./show_stock.sh
 
 echo "[tidbyt_stock_price] $(date '+%Y/%m/%d %H:%M:%S') Done"

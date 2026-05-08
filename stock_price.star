@@ -155,10 +155,9 @@ def fetch_historical_data(symbol, alpaca_key, alpaca_secret, days):
         print("No historical data found for symbol %s" % symbol)
         return None
     sorted_bars = sorted(bars, key=lambda x: time.parse_time(x.get("t"), "2006-01-02T15:04:05Z"))
-    # Cache the data, adjust TTL based on market hours
-    now_hour = time.now().hour
-    # Assume market hours are 9 AM to 4 PM Eastern Time
-    if (9 <= now_hour) and (now_hour <= 16):
+    # time.now() is UTC; convert to ET so the market-hours window is correct.
+    now_et = time.now().in_location("America/New_York")
+    if (9 <= now_et.hour) and (now_et.hour <= 16):
         ttl_seconds = 300  # 5 minutes during market hours
     else:
         ttl_seconds = 3600  # 1 hour outside market hours
