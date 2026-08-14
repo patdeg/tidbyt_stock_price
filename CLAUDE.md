@@ -22,6 +22,45 @@ Shell scripts:
 - `./refresh.sh` - Cron job script that cleans, renders, and pushes
 - `./show_stock.sh` - Pushes different stocks to different Tidbyt devices
 
+## Device Ticker Assignment
+
+`show_stock.sh` is the single source of truth for which symbol appears on which
+device. There are two devices, each with its own list:
+
+| Device | `.env` vars | Tickers |
+|--------|-------------|---------|
+| Desk | `TIDBYT_API_TOKEN_DESK` + `TIDBYT_DEVICE_ID_DECK` | `GEHC NVDA ISRG GEV SPCX` |
+| Shelf | `TIDBYT_API_TOKEN_SHELF` + `TIDBYT_DEVICE_ID_SHELF` | `GEHC HCA RDNT TEM` |
+
+Note the naming inconsistency in `.env`: the desk device's token is `..._DESK`
+but its device id is `..._DECK`. Same physical device.
+
+**Each ticker is its own installation-id.** A device does not show one stock; it
+cycles every pushed ticker as a separate app in its rotation, alongside whatever
+else is installed (`clock`, `sunrise-sunset`, `aistatus`, `cloudstatus`). So a
+longer list means each ticker is on screen proportionally less. Keep lists short.
+
+### Adding or removing a ticker
+
+1. Edit the relevant `for TICKER in ...` loop in `show_stock.sh`.
+2. **Verify the symbol renders first** — see the data-source limit below:
+   `pixlet render stock_price.star symbol=XXX alpaca_key=$ALPACA_KEY alpaca_secret=$ALPACA_SECRET`
+3. **Removing a ticker requires deleting its installation.** Dropping it from the
+   loop only stops updates; the installation stays on the device and freezes on
+   its last frame, displaying a stale price indefinitely. Delete it explicitly:
+   ```bash
+   pixlet delete --api-token "$TIDBYT_API_TOKEN_SHELF" "$TIDBYT_DEVICE_ID_SHELF" TICKER
+   ```
+   `pixlet list --api-token ... <device-id>` shows what is actually installed.
+
+### Data-source limit on which symbols work
+
+`stock_price.star` reads Alpaca's **IEX feed**, which covers US exchange listings
+only. OTC-traded ADRs return no data and render nothing — confirmed failing:
+`SMMNY` (Siemens Healthineers), `FUJIY` (Fujifilm). NYSE-listed ADRs such as
+`PHG` (Philips) work normally. Displaying an OTC symbol would require a second
+data provider alongside Alpaca.
+
 ## Architecture
 
 **stock_price.star** - Main Starlark application containing:

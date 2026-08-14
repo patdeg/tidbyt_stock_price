@@ -44,11 +44,21 @@ push_ticker() {
   sleep 1
 }
 
-for TICKER in VOO GEHC; do
+# Each device gets its own ticker list. Keep both lists short: every ticker is
+# a separate installation-id, so it takes an equal slice of the device's app
+# rotation, and these devices also run clock, sunrise-sunset, aistatus and
+# cloudstatus. More tickers means each one is on screen less often.
+#
+# Ticker availability is limited by the data source: stock_price.star reads
+# Alpaca's IEX feed, which covers US exchange listings only. OTC-traded ADRs
+# return no data and render nothing -- verify a new symbol with
+# `pixlet render stock_price.star symbol=XXX ...` before adding it here.
+
+for TICKER in GEHC NVDA ISRG GEV SPCX; do
   push_ticker "$TICKER" "$TIDBYT_API_TOKEN_DESK" "$TIDBYT_DEVICE_ID_DECK"
 done
 
-for TICKER in AMZN GOOG MSFT NVDA GEHC; do
+for TICKER in GEHC HCA RDNT TEM; do
   push_ticker "$TICKER" "$TIDBYT_API_TOKEN_SHELF" "$TIDBYT_DEVICE_ID_SHELF"
 done
 
