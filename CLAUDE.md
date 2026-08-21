@@ -29,11 +29,13 @@ device. There are two devices, each with its own list:
 
 | Device | `.env` vars | Tickers |
 |--------|-------------|---------|
-| Desk | `TIDBYT_API_TOKEN_DESK` + `TIDBYT_DEVICE_ID_DECK` | `GEHC NVDA ISRG GEV SPCX` |
+| Desk | `TIDBYT_API_TOKEN_DESK` + `TIDBYT_DEVICE_ID_DESK` | `GEHC NVDA ISRG GEV SPCX` |
 | Shelf | `TIDBYT_API_TOKEN_SHELF` + `TIDBYT_DEVICE_ID_SHELF` | `GEHC` |
 
-Note the naming inconsistency in `.env`: the desk device's token is `..._DESK`
-but its device id is `..._DECK`. Same physical device.
+Both desk variables are spelled `..._DESK`. Until 2026-08-21 the device id was
+`TIDBYT_DEVICE_ID_DECK` -- a typo the scripts worked around with a
+`${TIDBYT_DEVICE_ID_DESK:-${TIDBYT_DEVICE_ID_DECK:-}}` fallback. Both the
+fallback and the typo are gone; `..._DECK` is no longer read anywhere.
 
 **Each ticker is its own installation-id.** A device does not show one stock; it
 cycles every pushed ticker as a separate app in its rotation, alongside whatever
@@ -81,7 +83,7 @@ data provider alongside Alpaca.
 Requires `.env` file with:
 - `ALPACA_KEY` / `ALPACA_SECRET` - Alpaca Market API credentials
 - `TIDBYT_API_TOKEN_DESK` / `TIDBYT_API_TOKEN_SHELF` - Device JWT tokens
-- `TIDBYT_DEVICE_ID_DECK` / `TIDBYT_DEVICE_ID_SHELF` - Device identifiers
+- `TIDBYT_DEVICE_ID_DESK` / `TIDBYT_DEVICE_ID_SHELF` - Device identifiers
 
 ## Technology Stack
 

@@ -27,7 +27,7 @@ unquote = $(patsubst "%",%,$(1))
 ALPACA_KEY             := $(call unquote,$(ALPACA_KEY))
 ALPACA_SECRET          := $(call unquote,$(ALPACA_SECRET))
 TIDBYT_API_TOKEN_DESK  := $(call unquote,$(TIDBYT_API_TOKEN_DESK))
-TIDBYT_DEVICE_ID_DECK  := $(call unquote,$(TIDBYT_DEVICE_ID_DECK))
+TIDBYT_DEVICE_ID_DESK  := $(call unquote,$(TIDBYT_DEVICE_ID_DESK))
 TIDBYT_API_TOKEN_SHELF := $(call unquote,$(TIDBYT_API_TOKEN_SHELF))
 TIDBYT_DEVICE_ID_SHELF := $(call unquote,$(TIDBYT_DEVICE_ID_SHELF))
 
@@ -50,8 +50,8 @@ list:
 
 # Push the rendered app to all registered Tidbyt devices
 push: stock_price.webp
-	@echo "pushing to DECK ($(TIDBYT_DEVICE_ID_DECK))"
-	@pixlet push --api-token $(TIDBYT_API_TOKEN_DESK) --installation-id $(SYMBOL) $(TIDBYT_DEVICE_ID_DECK) stock_price.webp
+	@echo "pushing to DESK ($(TIDBYT_DEVICE_ID_DESK))"
+	@pixlet push --api-token $(TIDBYT_API_TOKEN_DESK) --installation-id $(SYMBOL) $(TIDBYT_DEVICE_ID_DESK) stock_price.webp
 	@echo "pushing to SHELF ($(TIDBYT_DEVICE_ID_SHELF))"
 	@pixlet push --api-token $(TIDBYT_API_TOKEN_SHELF) --installation-id $(SYMBOL) $(TIDBYT_DEVICE_ID_SHELF) stock_price.webp
 

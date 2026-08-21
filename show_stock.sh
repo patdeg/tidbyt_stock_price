@@ -55,7 +55,7 @@ push_ticker() {
 # `pixlet render stock_price.star symbol=XXX ...` before adding it here.
 
 for TICKER in GEHC NVDA ISRG GEV SPCX; do
-  push_ticker "$TICKER" "$TIDBYT_API_TOKEN_DESK" "$TIDBYT_DEVICE_ID_DECK"
+  push_ticker "$TICKER" "$TIDBYT_API_TOKEN_DESK" "$TIDBYT_DEVICE_ID_DESK"
 done
 
 for TICKER in GEHC; do
