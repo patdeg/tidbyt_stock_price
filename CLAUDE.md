@@ -11,10 +11,10 @@ Tidbyt application that displays real-time stock prices and 7-day historical tre
 ```bash
 make render              # Render stock app to WebP
 make render SYMBOL=MSFT  # Render specific stock symbol
-make push                # Render and push to all Tidbyt devices (default target)
+make push                # Render and push to both configured devices (default target)
 make serve               # Local dev server at http://localhost:8080
 make serve SYMBOL=TSLA   # Serve with specific symbol
-make list                # List registered Tidbyt devices
+make list                # List registered Tidbyt devices (needs interactive pixlet auth)
 make clean               # Remove generated WebP files
 ```
 
@@ -62,6 +62,69 @@ only. OTC-traded ADRs return no data and render nothing — confirmed failing:
 `SMMNY` (Siemens Healthineers), `FUJIY` (Fujifilm). NYSE-listed ADRs such as
 `PHG` (Philips) work normally. Displaying an OTC symbol would require a second
 data provider alongside Alpaca.
+
+## Rotating device credentials
+
+Replacing a Tidbyt changes **both** its device id and its API token, and the
+token is scoped to the device: a new id paired with an old token returns
+`404 device not found` -- indistinguishable from a simply wrong id. Confirm the
+pair matches before debugging anything else. The token is a JWT whose `device`
+claim must equal the id:
+
+```bash
+source .env
+python3 -c "import base64,json,sys; p=sys.argv[1].split('.')[1]; p+='='*(-len(p)%4); \
+  print(json.loads(base64.urlsafe_b64decode(p))['device'])" "$TIDBYT_API_TOKEN_DESK"
+# must print the value of TIDBYT_DEVICE_ID_DESK
+```
+
+### Quoting: two consumers, two behaviours
+
+`.env` is read two different ways, and only one of them strips quotes:
+
+| Consumer | Mechanism | Strips `"` ? |
+|---|---|---|
+| `show_stock.sh`, `refresh.sh` | bash `source` | yes |
+| `Makefile` | GNU make `include` | **no** |
+
+So a `KEY="value"` entry reaches `make push` with the quotes still attached and
+the API rejects it as `404 device not found` -- the same symptom as a wrong id,
+which makes it easy to misdiagnose as a bad credential. The Makefile strips them
+explicitly via the `unquote` function; leave that in place and either style
+works.
+
+### `.env` lives on three hosts and drifts
+
+alfred is master and runs the cron. patrick and nasdaq hold dormant copies with
+no crons, so nothing there fails loudly when they go stale -- on 2026-08-21
+nasdaq was still pointing at a device that had already been replaced. After
+rotating, sync the replica:
+
+```bash
+scp .env nasdaq:~/patdeg/tidbyt_stock_price/.env
+```
+
+**Sync code and credentials together, never credentials alone.** An out-of-date
+`show_stock.sh` on a replica carries a different ticker list, so running it
+re-installs tickers that were deliberately deleted from a device.
+
+### Verify against a real cron cycle, not a manual run
+
+Manual runs can pass while cron fails (different PATH and environment). Isolate
+the most recent cycle -- a plain `tail` reaches back into pre-fix lines and will
+show stale errors that are already resolved:
+
+```bash
+awk '/\[tidbyt_stock_price\].*Starting/{b=""} {b=b $0 "\n"} END{printf "%s", b}' \
+  /home/pdeglon/logs/tidbyt_stock_price.log
+```
+
+Two error classes, only one of which is actionable:
+
+- **Real:** `404`, `device not found`, `push failed after 3 attempts`.
+- **Routine:** `context deadline exceeded` from Alpaca. A transient upstream
+  timeout that the 3-attempt retry absorbs; the render succeeds on a later
+  attempt and the push still lands. Present in healthy cycles.
 
 ## Architecture
 
