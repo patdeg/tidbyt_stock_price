@@ -17,6 +17,20 @@
 include .env
 export $(shell sed 's/=.*//' .env)
 
+# GNU make's `include` does not strip quotes the way bash's `source` does. A
+# .env written as KEY="value" therefore reaches pixlet with the quotes still
+# attached, and the API rejects it as an unknown device (404) -- the same
+# symptom as a genuinely wrong device id. Strip them so `make push` behaves
+# like show_stock.sh regardless of how the .env was written.
+unquote = $(patsubst "%",%,$(1))
+
+ALPACA_KEY             := $(call unquote,$(ALPACA_KEY))
+ALPACA_SECRET          := $(call unquote,$(ALPACA_SECRET))
+TIDBYT_API_TOKEN_DESK  := $(call unquote,$(TIDBYT_API_TOKEN_DESK))
+TIDBYT_DEVICE_ID_DECK  := $(call unquote,$(TIDBYT_DEVICE_ID_DECK))
+TIDBYT_API_TOKEN_SHELF := $(call unquote,$(TIDBYT_API_TOKEN_SHELF))
+TIDBYT_DEVICE_ID_SHELF := $(call unquote,$(TIDBYT_DEVICE_ID_SHELF))
+
 # Default values for stock symbol and timeframe
 SYMBOL ?= GEHC
 

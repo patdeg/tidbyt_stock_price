@@ -30,7 +30,7 @@ device. There are two devices, each with its own list:
 | Device | `.env` vars | Tickers |
 |--------|-------------|---------|
 | Desk | `TIDBYT_API_TOKEN_DESK` + `TIDBYT_DEVICE_ID_DECK` | `GEHC NVDA ISRG GEV SPCX` |
-| Shelf | `TIDBYT_API_TOKEN_SHELF` + `TIDBYT_DEVICE_ID_SHELF` | `GEHC HCA RDNT TEM` |
+| Shelf | `TIDBYT_API_TOKEN_SHELF` + `TIDBYT_DEVICE_ID_SHELF` | `GEHC` |
 
 Note the naming inconsistency in `.env`: the desk device's token is `..._DESK`
 but its device id is `..._DECK`. Same physical device.
