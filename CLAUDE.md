@@ -30,7 +30,7 @@ device. There are two devices, each with its own list:
 | Device | `.env` vars | Tickers |
 |--------|-------------|---------|
 | Desk | `TIDBYT_API_TOKEN_DESK` + `TIDBYT_DEVICE_ID_DESK` | `GEHC NVDA ISRG GEV SPCX` |
-| Shelf | `TIDBYT_API_TOKEN_SHELF` + `TIDBYT_DEVICE_ID_SHELF` | `GEHC` |
+| Shelf | `TIDBYT_API_TOKEN_SHELF` + `TIDBYT_DEVICE_ID_SHELF` | *(none — last ticker, GEHC, removed 2026-09-03)* |
 
 Both desk variables are spelled `..._DESK`. Until 2026-08-21 the device id was
 `TIDBYT_DEVICE_ID_DECK` -- a typo the scripts worked around with a
