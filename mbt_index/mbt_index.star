@@ -22,6 +22,21 @@ MBT is the equal-weight average of the three pillars (so a 2-stock pillar and a
 basket, so a render makes two HTTP requests regardless of basket size.
 
 Choose the index with `index=minds|bodies|terawatts|mbt`.
+
+WEIGHTING (decided 2026-10-06): equal weight everywhere, deliberately.
+  - Inside a pillar: every stock counts the same (the question the tile answers
+    is "is the theme working", not "what did the biggest company do").
+  - MBT: each pillar counts one third, regardless of basket size.
+  Known limit: an ETF such as SMH or KOID counts as one stock, and a thin ETF
+  (NUKZ) moves its pillar as much as NVDA does.
+  PLANNED, NOT BUILT: market-cap weighting *inside* each pillar (the underlying
+  indexes), with MBT staying equal-weight across the three pillars. Keep MBT
+  equal-weight when that lands -- it is the cross-theme gauge, and cap-weighting
+  it would let the largest pillar dominate. That change belongs in
+  pillar_series() / latest_level() (they need a per-symbol weight, which will
+  need market caps from a second data source; Alpaca bars do not carry them).
+  Other known simplification: the level is rebased to 100 at the start of the
+  rolling 7-day window, not a fixed base date.
 """
 
 load("render.star", "render")

@@ -29,7 +29,7 @@ device. There are two devices, each with its own list:
 
 | Device | `.env` vars | Tickers |
 |--------|-------------|---------|
-| Desk | `TIDBYT_API_TOKEN_DESK` + `TIDBYT_DEVICE_ID_DESK` | `GEHC NVDA ISRG GEV SPCX` |
+| Desk | `TIDBYT_API_TOKEN_DESK` + `TIDBYT_DEVICE_ID_DESK` | `GEHC SPCX` + indexes `MIND BODY TERA MBT` (NVDA/ISRG/GEV removed 2026-10-06) |
 | Shelf | `TIDBYT_API_TOKEN_SHELF` + `TIDBYT_DEVICE_ID_SHELF` | *(none — last ticker, GEHC, removed 2026-09-03)* |
 
 Both desk variables are spelled `..._DESK`. Until 2026-08-21 the device id was
@@ -54,6 +54,25 @@ longer list means each ticker is on screen proportionally less. Keep lists short
    pixlet delete --api-token "$TIDBYT_API_TOKEN_SHELF" "$TIDBYT_DEVICE_ID_SHELF" TICKER
    ```
    `pixlet list --api-token ... <device-id>` shows what is actually installed.
+
+## Thematic indexes (`mbt_index/`)
+
+`mbt_index/mbt_index.star` renders four tiles for the desk (`index=minds|bodies|
+terawatts|mbt`), pushed by `push_index` in `show_stock.sh` under installation-ids
+`MIND BODY TERA MBT`. Basket membership is the `PILLARS` dict at the top of the file.
+
+- **Own directory on purpose.** `pixlet render` fails with `reading X.star: file does
+  not exist` when two `.star` files share a directory -- it broke the whole cron,
+  GEHC and SPCX included, until the app was moved into `mbt_index/`. Never put a
+  second `.star` next to `stock_price.star`.
+- **Weighting: equal weight, deliberately** (decided 2026-10-06). Equal within a
+  pillar; MBT is the equal-weight mean of the three pillars. Planned later:
+  market-cap weights *inside* each pillar, MBT stays equal-weight across pillars.
+  Not built -- it needs market caps from a second data source. Details in the
+  file's docstring.
+- Level is rebased to 100 at the start of the rolling 7-day window (not a fixed base).
+- Removing a symbol from a basket needs no device cleanup; removing a *tile* does
+  (`pixlet delete`, see above).
 
 ### Data-source limit on which symbols work
 
