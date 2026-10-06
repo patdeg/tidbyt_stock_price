@@ -70,7 +70,14 @@ terawatts|mbt`), pushed by `push_index` in `show_stock.sh` under installation-id
   market-cap weights *inside* each pillar, MBT stays equal-weight across pillars.
   Not built -- it needs market caps from a second data source. Details in the
   file's docstring.
-- Level is rebased to 100 at the start of the rolling 7-day window (not a fixed base).
+- **Base: 100 = last close of the prior calendar year** (2025-12-31 for 2026); rolls
+  over by itself each January. The chart is therefore year-to-date. A symbol that
+  listed after the base date is held flat at 100 until its first bar.
+- **Chart amplitude is shared, the axis is not** (decided 2026-10-06): all four tiles
+  get the same vertical span (the largest range of the four, +10%) so a 1-point move
+  is the same height everywhere, but each window is centred on its own data. Colour
+  follows the sign of the change from base. Don't revert to per-tile autoscale (a
+  0.1% wiggle looked like a crash) and don't force one shared absolute axis.
 - Removing a symbol from a basket needs no device cleanup; removing a *tile* does
   (`pixlet delete`, see above).
 

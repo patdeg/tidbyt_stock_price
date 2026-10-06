@@ -16,12 +16,24 @@
 Custom thematic indexes for the Tidbyt: Minds, Bodies, Terawatts, and the
 combined MBT index.
 
-Each pillar is an equal-weight basket rebased to 100 at the start of the window.
-MBT is the equal-weight average of the three pillars (so a 2-stock pillar and a
-3-stock pillar count the same). One multi-symbol Alpaca call feeds a whole
-basket, so a render makes two HTTP requests regardless of basket size.
-
 Choose the index with `index=minds|bodies|terawatts|mbt`.
+
+BASE: 100 = the last close of the PRIOR calendar year (so in 2026, 100 is the
+2025-12-31 close). The base year follows the clock and rolls over by itself on
+Jan 1. A symbol that did not yet trade on the base date is held flat at 100 until
+its first bar, then rebased on that first close, so a newly listed ETF never
+makes the basket jump.
+
+CHART: all four tiles share the same vertical SPAN (amplitude), not the same
+absolute axis. Every render computes all four series (one Alpaca call, so it
+costs nothing extra), takes the largest (max - min) of the change-from-base
+among them, pads it 10%, and gives every tile that span, centred on the tile's
+own data (y_lim). So one percentage point is the same number of pixels on every
+tile and the shapes compare honestly, while each tile still shows its own
+level. Do not "autoscale per tile" again: that is what made a 0.1% wiggle look
+like a crash. Colour follows the sign of the change from base (green above the
+base line, red below), so a tile whose window sits entirely above or below the
+base is a single colour.
 
 WEIGHTING (decided 2026-10-06): equal weight everywhere, deliberately.
   - Inside a pillar: every stock counts the same (the question the tile answers
@@ -35,8 +47,6 @@ WEIGHTING (decided 2026-10-06): equal weight everywhere, deliberately.
   it would let the largest pillar dominate. That change belongs in
   pillar_series() / latest_level() (they need a per-symbol weight, which will
   need market caps from a second data source; Alpaca bars do not carry them).
-  Other known simplification: the level is rebased to 100 at the start of the
-  rolling 7-day window, not a fixed base date.
 """
 
 load("render.star", "render")
@@ -54,6 +64,8 @@ PILLARS = {
     "terawatts": ["VRT", "GEV", "NUKZ"],
 }
 
+PILLAR_ORDER = ["minds", "bodies", "terawatts"]
+
 # Short labels so "LABEL 103 +1.2%" fits the 64px width.
 LABELS = {
     "minds": "MIND",
@@ -61,8 +73,6 @@ LABELS = {
     "terawatts": "TERA",
     "mbt": "MBT",
 }
-
-DAYS = 7
 
 def get_schema():
     return schema.Schema(
@@ -104,22 +114,33 @@ def auth_headers(key, secret):
         "accept": "application/json",
     }
 
-def fetch_bars(symbols, key, secret):
-    """Daily bars for all symbols in one call: {symbol: [bar, ...]} sorted by time."""
+def base_date():
+    """Last day of the prior calendar year (ET), as YYYY-MM-DD."""
+    year = time.now().in_location("America/New_York").year
+    return "%d-12-31" % (year - 1)
+
+def fetch_bars(symbols, key, secret, base):
+    """Daily bars from a week before the base date to yesterday, all symbols in
+    one call: {symbol: [bar, ...]} sorted by time."""
     csv = ",".join(symbols)
-    cache_key = "mbt_bars_%s_%d" % (csv, DAYS)
+    cache_key = "mbt_bars_%s_%s" % (csv, base)
     cached = cache.get(cache_key)
     if cached != None:
         return json.decode(cached)
 
     end_time = time.now() - time.hour * 24
-    start_time = end_time - time.hour * 24 * (1 + DAYS)
-    url = ("https://data.alpaca.markets/v2/stocks/bars?symbols=%s&timeframe=1Day&start=%s&end=%s&limit=1000" %
-           (csv, start_time.format("2006-01-02T15:04:05Z"), end_time.format("2006-01-02T15:04:05Z")))
+    # A week of slack so the base date's bar is found across holidays/weekends.
+    start = "%s-12-20T00:00:00Z" % base[:4]
+    # limit=10000 is Alpaca's maximum: ~8 symbols x ~250 days fits in one page.
+    url = ("https://data.alpaca.markets/v2/stocks/bars?symbols=%s&timeframe=1Day&start=%s&end=%s&limit=10000" %
+           (csv, start, end_time.format("2006-01-02T15:04:05Z")))
     res = fetch_with_retry(url, auth_headers(key, secret))
     if res == None:
         return None
-    bars = res.json().get("bars")
+    body = res.json()
+    if body.get("next_page_token"):
+        print("WARNING: bars response was paginated; later days are missing")
+    bars = body.get("bars")
     if not bars:
         return None
 
@@ -141,26 +162,37 @@ def fetch_latest(symbols, key, secret):
             out[sym] = float(t.get("p"))
     return out
 
-def pillar_series(symbols, bars, dates):
-    """Equal-weight basket rebased to 100 on dates[0], carrying prior closes
-    forward over days a thin ETF did not trade. Returns a list aligned to dates,
-    or None if no symbol has data."""
+def symbol_base(sym_bars, base):
+    """Close on the last bar on/before the base date; if the symbol listed after
+    the base date, its first close. Returns None if there are no bars."""
+    if not sym_bars:
+        return None
+    chosen = float(sym_bars[0].get("c"))
+    for b in sym_bars:
+        if b.get("t")[:10] <= base:
+            chosen = float(b.get("c"))
+    return chosen
+
+def pillar_series(symbols, bars, dates, base):
+    """Equal-weight basket level (100 = base) for each date in `dates`, carrying
+    the previous close forward over days a thin ETF did not trade. Returns None
+    if no symbol has data."""
     per_symbol = []
     for sym in symbols:
         sym_bars = bars.get(sym)
         if not sym_bars:
             print("no bars for %s; excluded" % sym)
             continue
+        sb = symbol_base(sym_bars, base)
         by_date = {}
         for b in sym_bars:
             by_date[b.get("t")[:10]] = float(b.get("c"))
-        first = float(sym_bars[0].get("c"))
-        last = first
+        last = sb
         line = []
         for d in dates:
             if d in by_date:
                 last = by_date[d]
-            line.append(last / first * 100.0)
+            line.append(last / sb * 100.0)
         per_symbol.append(line)
     if len(per_symbol) == 0:
         return None
@@ -172,14 +204,14 @@ def pillar_series(symbols, bars, dates):
         series.append(total / len(per_symbol))
     return series
 
-def latest_level(symbols, bars, latest):
-    """Today's live basket level on the same base as pillar_series, or None."""
+def latest_level(symbols, bars, latest, base):
+    """Live basket level on the same base as pillar_series, or None."""
     levels = []
     for sym in symbols:
         sym_bars = bars.get(sym)
         if not sym_bars or sym not in latest:
             continue
-        levels.append(latest[sym] / float(sym_bars[0].get("c")) * 100.0)
+        levels.append(latest[sym] / symbol_base(sym_bars, base) * 100.0)
     if len(levels) == 0:
         return None
     return mean(levels)
@@ -202,60 +234,90 @@ def main(config):
     if index != "mbt" and index not in PILLARS:
         return message("Bad index %s" % index)
 
-    names = ["minds", "bodies", "terawatts"] if index == "mbt" else [index]
+    # Always load the whole universe: the shared y-axis needs all four series.
     symbols = []
-    for n in names:
+    for n in PILLAR_ORDER:
         for s in PILLARS[n]:
             if s not in symbols:
                 symbols.append(s)
 
-    bars = fetch_bars(symbols, key, secret)
+    base = base_date()
+    bars = fetch_bars(symbols, key, secret, base)
     if bars == None:
         return message("No data %s" % LABELS[index])
 
-    # Union of trading dates across the whole basket, oldest first.
+    # Trading dates from the base date forward, oldest first. The base date
+    # itself (or the last trading day before it) is the first point = 100.
     seen = {}
     for sym in symbols:
         for b in bars.get(sym, []):
             seen[b.get("t")[:10]] = True
-    dates = sorted(seen.keys())
+    all_dates = sorted(seen.keys())
+    start_date = all_dates[0]
+    for d in all_dates:
+        if d <= base:
+            start_date = d
+    dates = [d for d in all_dates if d >= start_date]
     if len(dates) < 2:
         return message("Too little data")
 
     latest = fetch_latest(symbols, key, secret)
 
-    pillar_lines = {}
-    pillar_now = {}
-    for n in names:
-        s = pillar_series(PILLARS[n], bars, dates)
+    lines = {}
+    live = {}
+    for n in PILLAR_ORDER:
+        s = pillar_series(PILLARS[n], bars, dates, base)
         if s == None:
             return message("No data %s" % n)
-        pillar_lines[n] = s
-        pillar_now[n] = latest_level(PILLARS[n], bars, latest)
+        lines[n] = s
+        live[n] = latest_level(PILLARS[n], bars, latest, base)
 
-    # MBT = equal-weight mean of the pillar levels; a pillar alone is itself.
-    series = []
+    # MBT = equal-weight mean of the three pillars.
+    mbt = []
     for i in range(len(dates)):
-        total = 0.0
-        for n in names:
-            total += pillar_lines[n][i]
-        series.append(total / len(names))
+        mbt.append(mean([lines[n][i] for n in PILLAR_ORDER]))
+    lines["mbt"] = mbt
+    live_parts = [live[n] for n in PILLAR_ORDER if live[n] != None]
+    live["mbt"] = mean(live_parts) if len(live_parts) == len(PILLAR_ORDER) else None
 
-    live = None
-    live_parts = [pillar_now[n] for n in names if pillar_now[n] != None]
-    if len(live_parts) == len(names):
-        live = mean(live_parts)
+    # Append today's live point where we have one. Then find each index's own
+    # range (change from base) and the LARGEST range among the four: every tile
+    # gets that same vertical span (same amplitude per pixel, so shapes compare)
+    # but is centred on its own data (values are NOT forced onto one shared axis).
+    full = {}
+    lo = {}
+    hi = {}
+    span = 0.0
+    for name in ["minds", "bodies", "terawatts", "mbt"]:
+        s = list(lines[name])
+        if live[name] != None:
+            s.append(live[name])
+        full[name] = s
+        lo[name] = s[0] - 100.0
+        hi[name] = s[0] - 100.0
+        for v in s:
+            if v - 100.0 < lo[name]:
+                lo[name] = v - 100.0
+            if v - 100.0 > hi[name]:
+                hi[name] = v - 100.0
+        if hi[name] - lo[name] > span:
+            span = hi[name] - lo[name]
+    span = span * 1.1
+    if span < 1.0:
+        span = 1.0  # percentage points; avoids a degenerate axis on a flat year
+    centre = (lo[index] + hi[index]) / 2.0
+    y_lim = (centre - span / 2.0, centre + span / 2.0)
 
-    prev_close = series[-1]
-    if live != None:
-        series.append(live)
-        level = live
-        day_pct = (live - prev_close) / prev_close * 100.0
+    series = full[index]
+    prev_close = lines[index][-1]
+    if live[index] != None:
+        level = live[index]
+        day_pct = (level - prev_close) / prev_close * 100.0
         color = "#00FF00" if day_pct >= 0 else "#FF0000"
         sign = "+" if day_pct >= 0 else "-"
     else:
         level = prev_close
-        day_pct = (prev_close - series[-2]) / series[-2] * 100.0
+        day_pct = (prev_close - lines[index][-2]) / lines[index][-2] * 100.0
         color = "#FFFFFF"
         sign = ""
 
@@ -264,7 +326,7 @@ def main(config):
 
     points = []
     for i, v in enumerate(series):
-        points.append((float(i), v - series[0]))
+        points.append((float(i), v - 100.0))
 
     return render.Root(
         render.Column(
@@ -285,6 +347,8 @@ def main(config):
                     color = "#0f0",
                     color_inverted = "#f00",
                     fill = True,
+                    x_lim = (0.0, float(len(series) - 1)),
+                    y_lim = y_lim,
                 ),
             ],
         ),
