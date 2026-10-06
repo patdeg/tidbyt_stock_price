@@ -88,3 +88,8 @@ push_index bodies    BODY "$TIDBYT_API_TOKEN_DESK" "$TIDBYT_DEVICE_ID_DESK"
 push_index terawatts TERA "$TIDBYT_API_TOKEN_DESK" "$TIDBYT_DEVICE_ID_DESK"
 push_index mbt       MBT  "$TIDBYT_API_TOKEN_DESK" "$TIDBYT_DEVICE_ID_DESK"
 
+# Shelf device: the four thematic indexes only (no single tickers).
+for PAIR in minds:MIND bodies:BODY terawatts:TERA mbt:MBT; do
+  push_index "${PAIR%%:*}" "${PAIR##*:}" "$TIDBYT_API_TOKEN_SHELF" "$TIDBYT_DEVICE_ID_SHELF"
+done
+
