@@ -54,7 +54,37 @@ push_ticker() {
 # return no data and render nothing -- verify a new symbol with
 # `pixlet render stock_price.star symbol=XXX ...` before adding it here.
 
-for TICKER in GEHC NVDA ISRG GEV SPCX; do
+# Thematic indexes come from mbt_index.star (basket membership lives there), not
+# stock_price.star. Same render/push discipline as a single ticker.
+push_index() {
+  local idx=$1 id=$2 token=$3 device=$4
+  echo "Showing index $idx ($id) on $device"
+  rm -f mbt_index.webp
+  local ok=0
+  for attempt in 1 2 3; do
+    if pixlet render mbt_index/mbt_index.star index="$idx" alpaca_key="$ALPACA_KEY" alpaca_secret="$ALPACA_SECRET" -o mbt_index.webp; then
+      ok=1; break
+    fi
+    [ "$attempt" -lt 3 ] && sleep 5
+  done
+  if [ "$ok" -eq 1 ]; then
+    for attempt in 1 2 3; do
+      pixlet push --installation-id "$id" --api-token "$token" "$device" mbt_index.webp && return 0
+      echo "[$id] push attempt $attempt failed"
+      [ "$attempt" -lt 3 ] && sleep 5
+    done
+    echo "[$id] push failed after 3 attempts; device will keep previous frame"
+  else
+    echo "[$id] render failed after 3 attempts; skipping push"
+  fi
+}
+
+for TICKER in GEHC SPCX; do
   push_ticker "$TICKER" "$TIDBYT_API_TOKEN_DESK" "$TIDBYT_DEVICE_ID_DESK"
 done
+
+push_index minds     MIND "$TIDBYT_API_TOKEN_DESK" "$TIDBYT_DEVICE_ID_DESK"
+push_index bodies    BODY "$TIDBYT_API_TOKEN_DESK" "$TIDBYT_DEVICE_ID_DESK"
+push_index terawatts TERA "$TIDBYT_API_TOKEN_DESK" "$TIDBYT_DEVICE_ID_DESK"
+push_index mbt       MBT  "$TIDBYT_API_TOKEN_DESK" "$TIDBYT_DEVICE_ID_DESK"
 

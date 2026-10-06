@@ -2,3 +2,4 @@
 .env
 cron.log
 *.local.md
+mbt_index.webp
