@@ -70,7 +70,7 @@ PILLAR_ORDER = ["minds", "bodies", "terawatts"]
 LABELS = {
     "minds": "MIND",
     "bodies": "BODY",
-    "terawatts": "TERA",
+    "terawatts": "WATT",
     "mbt": "MBT",
 }
 
