@@ -60,7 +60,7 @@ load("schema.star", "schema")
 # The only place the basket membership lives. Symbols must be US exchange
 # listings: Alpaca's IEX feed returns nothing for OTC ADRs.
 PILLARS = {
-    "minds": ["NVDA", "TSM", "ASML", "AVGO", "MU", "SPCX"],
+    "minds": ["NVDA", "TSM", "ASML", "MU", "SPCX"],
     "bodies": ["KOID", "ISRG", "ROK", "TSLA"],
     "terawatts": ["GEV", "GRID", "CCJ", "CEG", "FSLR"],
 }

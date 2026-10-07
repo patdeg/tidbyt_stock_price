@@ -70,8 +70,8 @@ terawatts|mbt`), pushed by `push_index` in `show_stock.sh` under installation-id
   market-cap weights *inside* each pillar, MBT stays equal-weight across pillars.
   Not built -- it needs market caps from a second data source. Details in the
   file's docstring.
-- **Basket and base mirror the public index** on unscarcity.ai (Minds: NVDA TSM ASML AVGO MU
-  SPCX; Bodies: KOID ISRG ROK TSLA; Terawatts: GEV GRID CCJ CEG FSLR; equal weight; updated
+- **Basket and base mirror the public index** on unscarcity.ai (Minds: NVDA TSM ASML MU
+  SPCX; AVGO dropped 2026-10-06; Bodies: KOID ISRG ROK TSLA; Terawatts: GEV GRID CCJ CEG FSLR; equal weight; updated
   2026-10-06, SPCX moved to Minds). The public job is `unscarcity/scripts/mbt_index_build.py`;
   **change both together** or the tile and the page will disagree.
 - **Base: 100 = the close on 2025-12-18**, the day the book *Unscarcity* was published
