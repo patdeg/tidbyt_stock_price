@@ -61,8 +61,18 @@ load("schema.star", "schema")
 # listings: Alpaca's IEX feed returns nothing for OTC ADRs.
 PILLARS = {
     "minds": ["NVDA", "TSM", "ASML", "MU", "SPCX"],
-    "bodies": ["KOID", "ISRG", "ROK", "TSLA", "AGLT"],
-    "terawatts": ["GEV", "GRID", "CCJ", "CEG", "FSLR"],
+    "bodies": ["SYM", "ISRG", "ROK", "TSLA", "AGLT"],
+    "terawatts": ["GEV", "ETN", "CCJ", "CEG", "FSLR"],
+}
+
+# Index v2.0 (effective 2026-10-08): no funds. Each new member is chain-linked
+# into the slot of the one it replaces at the link date's close, at that
+# slot's level, so no index jumps and history before the link is unchanged.
+# Keep in step with constituents.csv (`replaces`, `linked_at`) in
+# plaid_trans/mbt-index and scripts/mbt_index_members.py in unscarcity.
+REPLACED = {
+    "SYM": ("KOID", "2026-10-07"),
+    "ETN": ("GRID", "2026-10-07"),
 }
 
 # Members announced but not trading yet under their ticker: held flat at 100
@@ -185,30 +195,58 @@ def symbol_base(sym_bars, base):
             chosen = float(b.get("c"))
     return chosen
 
+def symbol_line(sym, bars, dates, base):
+    """Level (100 = base) of one symbol for each date, carrying the previous
+    close forward over days a thin name did not trade. A pending listing is
+    flat at 100. None if the symbol has no data."""
+    sym_bars = bars.get(sym)
+    if not sym_bars:
+        if sym in PENDING_LISTINGS:
+            return [100.0 for _ in dates]
+        print("no bars for %s; excluded" % sym)
+        return None
+    sb = symbol_base(sym_bars, base)
+    by_date = {}
+    for b in sym_bars:
+        by_date[b.get("t")[:10]] = float(b.get("c"))
+    last = sb
+    line = []
+    for d in dates:
+        if d in by_date:
+            last = by_date[d]
+        line.append(last / sb * 100.0)
+    return line
+
+def link_index(dates, link):
+    """Index of the last date on/before the link date, or -1."""
+    il = -1
+    for i in range(len(dates)):
+        if dates[i] <= link:
+            il = i
+    return il
+
+def slot_line(sym, bars, dates, base):
+    """A member's line, chain-linked onto the member it replaced (REPLACED)."""
+    if sym not in REPLACED:
+        return symbol_line(sym, bars, dates, base)
+    old, link = REPLACED[sym]
+    old_line = symbol_line(old, bars, dates, base)
+    new_line = symbol_line(sym, bars, dates, base)
+    il = link_index(dates, link)
+    if old_line == None or il < 0:
+        return new_line
+    if new_line == None or new_line[il] == 0:
+        return old_line
+    return [old_line[i] if i <= il else old_line[il] * new_line[i] / new_line[il] for i in range(len(dates))]
+
 def pillar_series(symbols, bars, dates, base):
-    """Equal-weight basket level (100 = base) for each date in `dates`, carrying
-    the previous close forward over days a thin ETF did not trade. Returns None
-    if no symbol has data."""
+    """Equal-weight basket level (100 = base) for each date in `dates`.
+    Returns None if no symbol has data."""
     per_symbol = []
     for sym in symbols:
-        sym_bars = bars.get(sym)
-        if not sym_bars:
-            if sym in PENDING_LISTINGS:
-                per_symbol.append([100.0 for _ in dates])
-            else:
-                print("no bars for %s; excluded" % sym)
-            continue
-        sb = symbol_base(sym_bars, base)
-        by_date = {}
-        for b in sym_bars:
-            by_date[b.get("t")[:10]] = float(b.get("c"))
-        last = sb
-        line = []
-        for d in dates:
-            if d in by_date:
-                last = by_date[d]
-            line.append(last / sb * 100.0)
-        per_symbol.append(line)
+        line = slot_line(sym, bars, dates, base)
+        if line != None:
+            per_symbol.append(line)
     if len(per_symbol) == 0:
         return None
     series = []
@@ -219,7 +257,7 @@ def pillar_series(symbols, bars, dates, base):
         series.append(total / len(per_symbol))
     return series
 
-def latest_level(symbols, bars, latest, base):
+def latest_level(symbols, bars, latest, base, dates):
     """Live basket level on the same base as pillar_series, or None."""
     levels = []
     for sym in symbols:
@@ -229,7 +267,15 @@ def latest_level(symbols, bars, latest, base):
             continue
         if not sym_bars or sym not in latest:
             continue
-        levels.append(latest[sym] / symbol_base(sym_bars, base) * 100.0)
+        live = latest[sym] / symbol_base(sym_bars, base) * 100.0
+        if sym in REPLACED:
+            old, link = REPLACED[sym]
+            old_line = symbol_line(old, bars, dates, base)
+            new_line = symbol_line(sym, bars, dates, base)
+            il = link_index(dates, link)
+            if old_line != None and new_line != None and il >= 0 and new_line[il] != 0:
+                live = old_line[il] * live / new_line[il]
+        levels.append(live)
     if len(levels) == 0:
         return None
     return mean(levels)
@@ -271,6 +317,8 @@ def main(config):
         for s in PILLARS[n]:
             if s not in symbols:
                 symbols.append(s)
+            if s in REPLACED and REPLACED[s][0] not in symbols:
+                symbols.append(REPLACED[s][0])  # needed for the history before the link
 
     base = base_date()
     bars = fetch_bars(symbols, key, secret, base)
@@ -302,7 +350,7 @@ def main(config):
         if s == None:
             return message("No data %s" % n)
         lines[n] = s
-        live[n] = latest_level(PILLARS[n], bars, latest, base)
+        live[n] = latest_level(PILLARS[n], bars, latest, base, dates)
 
     # MBT = equal-weight mean of the three pillars.
     mbt = []
