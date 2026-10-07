@@ -61,8 +61,17 @@ load("schema.star", "schema")
 # listings: Alpaca's IEX feed returns nothing for OTC ADRs.
 PILLARS = {
     "minds": ["NVDA", "TSM", "ASML", "MU", "SPCX"],
-    "bodies": ["KOID", "ISRG", "ROK", "TSLA"],
+    "bodies": ["KOID", "ISRG", "ROK", "TSLA", "AGLT"],
     "terawatts": ["GEV", "GRID", "CCJ", "CEG", "FSLR"],
+}
+
+# Members announced but not trading yet under their ticker: held flat at 100
+# (the new-listing rule). When one starts trading, set the date of its FIRST
+# close under this ticker; earlier bars are dropped, since after a SPAC merger
+# the feed may carry the SPAC's history over. While "", all bars are ignored.
+# Keep in step with PENDING_LISTINGS in plaid_trans/mbt-index/update.py.
+PENDING_LISTINGS = {
+    "AGLT": "",  # Agility Robotics, via merger with Churchill Capital Corp XI (CCXI); close expected Q4 2026
 }
 
 # Day zero: the day the book Unscarcity was published. Fixed for the life of the
@@ -184,7 +193,10 @@ def pillar_series(symbols, bars, dates, base):
     for sym in symbols:
         sym_bars = bars.get(sym)
         if not sym_bars:
-            print("no bars for %s; excluded" % sym)
+            if sym in PENDING_LISTINGS:
+                per_symbol.append([100.0 for _ in dates])
+            else:
+                print("no bars for %s; excluded" % sym)
             continue
         sb = symbol_base(sym_bars, base)
         by_date = {}
@@ -212,12 +224,28 @@ def latest_level(symbols, bars, latest, base):
     levels = []
     for sym in symbols:
         sym_bars = bars.get(sym)
+        if not sym_bars and sym in PENDING_LISTINGS:
+            levels.append(100.0)
+            continue
         if not sym_bars or sym not in latest:
             continue
         levels.append(latest[sym] / symbol_base(sym_bars, base) * 100.0)
     if len(levels) == 0:
         return None
     return mean(levels)
+
+def drop_pending_bars(bars):
+    """Copy of bars without the bars a pending listing must ignore."""
+    out = {}
+    for sym, sym_bars in bars.items():
+        if sym in PENDING_LISTINGS:
+            listed = PENDING_LISTINGS[sym]
+            if listed == "":
+                sym_bars = []
+            else:
+                sym_bars = [b for b in sym_bars if b.get("t")[:10] >= listed]
+        out[sym] = sym_bars
+    return out
 
 def mean(xs):
     total = 0.0
@@ -248,6 +276,7 @@ def main(config):
     bars = fetch_bars(symbols, key, secret, base)
     if bars == None:
         return message("No data %s" % LABELS[index])
+    bars = drop_pending_bars(bars)
 
     # Trading dates from the base date forward, oldest first. The base date
     # itself (or the last trading day before it) is the first point = 100.
