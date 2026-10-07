@@ -70,9 +70,13 @@ terawatts|mbt`), pushed by `push_index` in `show_stock.sh` under installation-id
   market-cap weights *inside* each pillar, MBT stays equal-weight across pillars.
   Not built -- it needs market caps from a second data source. Details in the
   file's docstring.
-- **Base: 100 = last close of the prior calendar year** (2025-12-31 for 2026); rolls
-  over by itself each January. The chart is therefore year-to-date. A symbol that
-  listed after the base date is held flat at 100 until its first bar.
+- **Basket and base mirror the public index** on unscarcity.ai (Minds: NVDA TSM ASML AVGO MU
+  SPCX; Bodies: KOID ISRG ROK TSLA; Terawatts: GEV GRID CCJ CEG FSLR; equal weight; updated
+  2026-10-06, SPCX moved to Minds). The public job is `unscarcity/scripts/mbt_index_build.py`;
+  **change both together** or the tile and the page will disagree.
+- **Base: 100 = the close on 2025-12-18**, the day the book *Unscarcity* was published
+  ("day zero"). Fixed, not rolling; changing it is a new version of the index. A symbol that
+  listed after day zero (SPCX, 2026-06-12) is held flat at 100 until its first bar.
 - **Chart amplitude is shared, the axis is not** (decided 2026-10-06): all four tiles
   get the same vertical span (the largest range of the four, +10%) so a 1-point move
   is the same height everywhere, but each window is centred on its own data. Colour

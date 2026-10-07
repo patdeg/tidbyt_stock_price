@@ -18,11 +18,12 @@ combined MBT index.
 
 Choose the index with `index=minds|bodies|terawatts|mbt`.
 
-BASE: 100 = the last close of the PRIOR calendar year (so in 2026, 100 is the
-2025-12-31 close). The base year follows the clock and rolls over by itself on
-Jan 1. A symbol that did not yet trade on the base date is held flat at 100 until
-its first bar, then rebased on that first close, so a newly listed ETF never
-makes the basket jump.
+BASE: 100 = the close on 2025-12-18, the day the book Unscarcity was published
+("day zero"). Fixed; changing it is a new version of the index. A symbol that
+did not yet trade on the base date (e.g. SPCX, listed 2026-06-12) is held flat at
+100 until its first bar, then rebased on that first close, so a new listing never
+makes a basket jump. Membership and base mirror the public index on unscarcity.ai
+(unscarcity/scripts/mbt_index_build.py); keep the two in step.
 
 CHART: all four tiles share the same vertical SPAN (amplitude), not the same
 absolute axis. Every render computes all four series (one Alpaca call, so it
@@ -59,10 +60,14 @@ load("schema.star", "schema")
 # The only place the basket membership lives. Symbols must be US exchange
 # listings: Alpaca's IEX feed returns nothing for OTC ADRs.
 PILLARS = {
-    "minds": ["SMH", "NVDA", "TSM"],
-    "bodies": ["KOID", "ISRG"],
-    "terawatts": ["VRT", "GEV", "NUKZ"],
+    "minds": ["NVDA", "TSM", "ASML", "AVGO", "MU", "SPCX"],
+    "bodies": ["KOID", "ISRG", "ROK", "TSLA"],
+    "terawatts": ["GEV", "GRID", "CCJ", "CEG", "FSLR"],
 }
+
+# Day zero: the day the book Unscarcity was published. Fixed for the life of the
+# index (the same date and 15 names as the public page on unscarcity.ai).
+BASE_DATE = "2025-12-18"
 
 PILLAR_ORDER = ["minds", "bodies", "terawatts"]
 
@@ -115,9 +120,7 @@ def auth_headers(key, secret):
     }
 
 def base_date():
-    """Last day of the prior calendar year (ET), as YYYY-MM-DD."""
-    year = time.now().in_location("America/New_York").year
-    return "%d-12-31" % (year - 1)
+    return BASE_DATE
 
 def fetch_bars(symbols, key, secret, base):
     """Daily bars from a week before the base date to yesterday, all symbols in
@@ -129,8 +132,8 @@ def fetch_bars(symbols, key, secret, base):
         return json.decode(cached)
 
     end_time = time.now() - time.hour * 24
-    # A week of slack so the base date's bar is found across holidays/weekends.
-    start = "%s-12-20T00:00:00Z" % base[:4]
+    # Ten days of slack so the base date's bar is found across holidays/weekends.
+    start = "2025-12-08T00:00:00Z"
     # limit=10000 is Alpaca's maximum: ~8 symbols x ~250 days fits in one page.
     url = ("https://data.alpaca.markets/v2/stocks/bars?symbols=%s&timeframe=1Day&start=%s&end=%s&limit=10000" %
            (csv, start, end_time.format("2006-01-02T15:04:05Z")))
