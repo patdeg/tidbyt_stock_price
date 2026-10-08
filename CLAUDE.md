@@ -71,7 +71,7 @@ terawatts|mbt`), pushed by `push_index` in `show_stock.sh` under installation-id
   Not built -- it needs market caps from a second data source. Details in the
   file's docstring.
 - **Basket and base mirror the public index** on unscarcity.ai (Minds: NVDA TSM ASML MU
-  SPCX; AVGO dropped 2026-10-06; Bodies: SYM ISRG ROK TSLA AGLT (added 2026-10-07; pending listing, held at 100 until its first close, see PENDING_LISTINGS); Terawatts: GEV ETN CCJ CEG FSLR (v2.0 from 2026-10-08: SYM replaced KOID, ETN replaced GRID, chain-linked at the 2026-10-07 close via REPLACED); equal weight; updated
+  SPCX; AVGO dropped 2026-10-06; Bodies: SYM ISRG ROK TSLA AGLT (added 2026-10-07; pending listing, held at 100 until its first close, see PENDING_LISTINGS); Terawatts: GEV ETN CCJ CEG FSLR (no funds: SYM and ETN replaced KOID and GRID on 2026-10-07 with history restated from day zero; REPLACED is the chain-link mechanism for later changes and is empty); equal weight; updated
   2026-10-06, SPCX moved to Minds). The public job is `unscarcity/scripts/mbt_index_build.py`;
   **change both together** or the tile and the page will disagree.
 - **Base: 100 = the close on 2025-12-18**, the day the book *Unscarcity* was published

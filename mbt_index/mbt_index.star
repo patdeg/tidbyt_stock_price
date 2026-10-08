@@ -65,15 +65,12 @@ PILLARS = {
     "terawatts": ["GEV", "ETN", "CCJ", "CEG", "FSLR"],
 }
 
-# Index v2.0 (effective 2026-10-08): no funds. Each new member is chain-linked
-# into the slot of the one it replaces at the link date's close, at that
-# slot's level, so no index jumps and history before the link is unchanged.
-# Keep in step with constituents.csv (`replaces`, `linked_at`) in
-# plaid_trans/mbt-index and scripts/mbt_index_members.py in unscarcity.
-REPLACED = {
-    "SYM": ("KOID", "2026-10-07"),
-    "ETN": ("GRID", "2026-10-07"),
-}
+# Membership changes once the index is public: {"NEW": ("OLD", "YYYY-MM-DD")}
+# chain-links the new member into the old one's slot at that close (no jump,
+# history unchanged). Empty today: on 2026-10-07, while still setting up, the
+# owner restated history instead (SYM and ETN replaced KOID and GRID from day
+# zero). Keep in step with constituents.csv (`replaces`, `linked_at`).
+REPLACED = {}
 
 # Members announced but not trading yet under their ticker: held flat at 100
 # (the new-listing rule). When one starts trading, set the date of its FIRST
